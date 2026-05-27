@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+  </Folder>
+  <Project Path="EdgeNetworkApi/EdgeNetworkApi.csproj" />
+  <Project Path="EdgeNetworkApplication/EdgeNetworkApplication.csproj" />
+  <Project Path="EdgeNetworkDomain/EdgeNetworkDomain.csproj" />
+  <Project Path="EdgeNetworkInfrastructure/EdgeNetworkInfrastructure.csproj" />
+</Solution>
