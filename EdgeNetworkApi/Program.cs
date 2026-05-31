@@ -1,16 +1,21 @@
-using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Options;
-using Microsoft.EntityFrameworkCore;
-using EdgeNetworkInfrastructure.Data;
-using EdgeNetworkInfrastructure.Identity;
-using EdgeNetworkDomain.Interface;
-using EdgeNetworkInfrastructure.Repositories;
-using EdgeNetworkInfrastructure;
+using System.Text;
+using EdgeNetworkApi.Middleware;
+using EdgeNetworkApplication.Common;
 using EdgeNetworkApplication.Interface;
 using EdgeNetworkApplication.Services;
+using EdgeNetworkApplication.Validators;
+using EdgeNetworkDomain.Interface;
+using EdgeNetworkInfrastructure;
+using EdgeNetworkInfrastructure.Data;
+using EdgeNetworkInfrastructure.Identity;
+using EdgeNetworkInfrastructure.Repositories;
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,6 +42,25 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IWalletService, WalletService>();
+
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserDtoValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserDtoValidator>();
+
+// Response wrapper for validation errors
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState.Values
+            .SelectMany(v => v.Errors)
+            .Select(e => e.ErrorMessage)
+            .ToList();
+
+        var response = ApiResponse<object>.Failure(string.Join(", ", errors));
+        return new BadRequestObjectResult(response);
+    };
+});
+
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 builder.Services.AddAuthentication(options =>
@@ -73,6 +97,7 @@ if (app.Environment.IsDevelopment())
 
 }
 
+app.UseMiddleware<ExceptionMiddleware>();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();

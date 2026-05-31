@@ -1,9 +1,11 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using EdgeNetworkApplication.Common;
 using EdgeNetworkApplication.Dtos;
 using EdgeNetworkApplication.Interface;
 using EdgeNetworkInfrastructure.Identity;
+using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -18,17 +20,26 @@ namespace EdgeNetworkApi.Controllers
         private readonly IUserService _userService;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
+        private readonly IValidator<RegisterUserDto> _registerValidator;
 
-        public AuthController(IUserService userService, UserManager<ApplicationUser> userManager, IConfiguration configuration)
+        public AuthController(IUserService userService, UserManager<ApplicationUser> userManager, IConfiguration configuration, IValidator<RegisterUserDto> registerValidator)
         {
             _userService = userService;
             _userManager = userManager;
             _configuration = configuration;
+            _registerValidator = registerValidator;
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterUserDto dto)
         {
+            var validationResult = await _registerValidator.ValidateAsync(dto);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors.Select(e => e.ErrorMessage);
+                return BadRequest(ApiResponse<object>.Failure(string.Join(", ", errors)));
+            }
+
             var IdentityUser = new ApplicationUser
             {
                 Id = Guid.NewGuid(),
@@ -44,7 +55,9 @@ namespace EdgeNetworkApi.Controllers
 
             var domainUser = await _userService.RegisterAsync(dto, IdentityUser.Id);
 
-            return Ok(new { domainUser.Id, message = "Registration Successful" });
+            return Ok(ApiResponse<object>.Success(
+                        new { domainUser.Id },
+                        "Registration successful."));
         }
 
         [HttpPost("login")]
@@ -58,7 +71,7 @@ namespace EdgeNetworkApi.Controllers
             if(!passwordValid) return Unauthorized("Invalid credentials");
 
             var token = GenerateJwtToken(IdentityUser);
-            return Ok(new { token });
+            return Ok(ApiResponse<object>.Success(new { token }, "Login successful."));
         }
 
         private string GenerateJwtToken(ApplicationUser user)

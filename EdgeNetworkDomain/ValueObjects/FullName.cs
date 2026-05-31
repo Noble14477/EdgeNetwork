@@ -8,7 +8,7 @@ namespace EdgeNetworkDomain.ValueObjects
     {
         public string FirstName { get; }
         public string LastName { get; }
-        public string FullNameString =>$"{FirstName} {LastName}";
+        public string FullNameString => $"{FirstName} {LastName}";
 
         public FullName(string firstName, string lastName)
         {

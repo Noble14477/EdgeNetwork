@@ -9,8 +9,9 @@ namespace EdgeNetworkApplication.Interface
     public interface IWalletService
     {
         Task<Wallet> CreateWalletAsync(Guid userId, string currency);
-        Task FundWalletAsync(FundWalletDto dto);
-        Task TransferFundsAsync(TransferFundsDto dto);
-        Task<Wallet?> GetWalletAsync(Guid userId);
+        Task FundWalletAsync(FundWalletDto dto, Guid requestingUserId);
+        Task TransferFundsAsync(TransferFundsDto dto, Guid requestingUserId);
+        Task<Wallet?> GetWalletAsync(Guid userId, Guid requestingUserId);
+        Task<IEnumerable<TransactionDto>> GetTransactionHistoryAsync(Guid walletId, Guid requestingUserId);
     }
 }
