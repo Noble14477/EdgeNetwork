@@ -24,7 +24,7 @@ namespace EdgeNetworkApplication.Validators
 
             RuleFor(x => x.PhoneNumber)
                 .NotEmpty().WithMessage("Phone number is required.")
-                .Matches(@"^\+?[1-9]\d{1,14}$").WithMessage("Invalid phone number format.");
+                 .Matches(@"^\+?[0-9]{10,15}$").WithMessage("Invalid phone number format.");
 
             RuleFor(x => x.Password)
                 .NotEmpty().WithMessage("Password is required.")
