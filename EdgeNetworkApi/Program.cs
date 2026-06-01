@@ -11,6 +11,7 @@ using EdgeNetworkInfrastructure.Identity;
 using EdgeNetworkInfrastructure.Repositories;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -107,6 +108,11 @@ var app = builder.Build();
 //    app.MapScalarApiReference();
 
 //}
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 
 app.MapOpenApi();
 app.MapScalarApiReference();
