@@ -97,13 +97,13 @@ namespace EdgeNetworkApi.Controllers
         }
 
         [HttpGet("{walletId}/transactions")]
-        public async Task<IActionResult> GetTransactionHistory(Guid walletId)
+        public async Task<IActionResult> GetTransactionHistory(Guid walletId, [FromQuery] TransactionFilterDto filter)
         {
             var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrWhiteSpace(userIdValue) || !Guid.TryParse(userIdValue, out var userId))
                 return Unauthorized(ApiResponse<object>.Failure("Unauthorized."));
 
-            var transactions = await _walletService.GetTransactionHistoryAsync(walletId, userId);
+            var transactions = await _walletService.GetTransactionHistoryAsync(walletId, userId, filter);
             return Ok(ApiResponse<object>.Success(transactions));
         }
     }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using EdgeNetworkApplication.Common;
 using EdgeNetworkApplication.Dtos;
 using EdgeNetworkDomain.Entities;
 
@@ -12,6 +13,9 @@ namespace EdgeNetworkApplication.Interface
         Task FundWalletAsync(FundWalletDto dto, Guid requestingUserId);
         Task TransferFundsAsync(TransferFundsDto dto, Guid requestingUserId);
         Task<Wallet?> GetWalletAsync(Guid userId, Guid requestingUserId);
-        Task<IEnumerable<TransactionDto>> GetTransactionHistoryAsync(Guid walletId, Guid requestingUserId);
+        Task<PagedResult<TransactionDto>> GetTransactionHistoryAsync(
+            Guid walletId,
+            Guid requestingUserId,
+            TransactionFilterDto filter);
     }
 }

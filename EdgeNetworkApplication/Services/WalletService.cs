@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using EdgeNetworkApplication.Common;
 using EdgeNetworkApplication.Dtos;
 using EdgeNetworkApplication.Interface;
+using EdgeNetworkDomain.Common;
 using EdgeNetworkDomain.Entities;
 using EdgeNetworkDomain.Enums;
 using EdgeNetworkDomain.Interface;
@@ -156,5 +158,49 @@ namespace EdgeNetworkApplication.Services
                 CreatedAt = t.CreatedAt
             });
         }
+           
+        public async Task<PagedResult<TransactionDto>> GetTransactionHistoryAsync( Guid walletId, Guid requestingUserId, TransactionFilterDto filter)
+        {
+            var wallet = await _walletRepository.GetByIdAsync(walletId);
+            if (wallet is null)
+                throw new InvalidOperationException("Wallet not found.");
+
+            if (wallet.UserId != requestingUserId)
+                throw new InvalidOperationException("You are not authorized to view these transactions.");
+            
+            var domainFilter = new TransactionFilter
+            {
+                Page = filter.Page,
+                PageSize = filter.PageSize,
+                Type = filter.Type,
+                Status = filter.Status,
+                DateFrom = filter.DateFrom,
+                DateTo = filter.DateTo
+            };
+
+            var (items, totalCount) = await _transactionRepository.GetFilteredAsync(walletId, domainFilter);
+
+            var dtos = items.Select(t => new TransactionDto
+            {
+                Id = t.Id,
+                Amount = t.Amount,
+                Currency = t.Currency,
+                Type = t.Type.ToString(),
+                Status = t.Status.ToString(),
+                Reference = t.Reference,
+                Description = t.Description,
+                CreatedAt = t.CreatedAt
+            });
+
+            return new PagedResult<TransactionDto>
+            {
+                Items = dtos,
+                TotalCount = totalCount,
+                Page = filter.Page,
+                PageSize = filter.PageSize
+            };
+        }
+
     }
+
 }
