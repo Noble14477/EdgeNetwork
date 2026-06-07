@@ -9,6 +9,8 @@ namespace EdgeNetworkDomain.ValueObjects
         public decimal Amount { get; }
         public string Currency { get; }
 
+        private Money() { }
+
         public Money(decimal amount, string currency)
         {
             if (amount < 0) throw new ArgumentException("Amount cannot be negative.");

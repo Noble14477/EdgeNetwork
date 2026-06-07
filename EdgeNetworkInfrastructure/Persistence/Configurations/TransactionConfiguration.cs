@@ -13,11 +13,9 @@ namespace EdgeNetworkInfrastructure.Persistence.Configurations
         {
             builder.HasKey(t => t.Id);
 
-            builder.OwnsOne(t => t.Amount, money =>
-            {
-                money.Property(m => m.Amount).HasColumnName("Amount").HasColumnType("decimal(18,2)");
-                money.Property(m => m.Currency).HasColumnName("Currency").HasMaxLength(3);
-            });
+                builder.Property(m => m.Amount).HasColumnType("numeric(18,2)").IsRequired();
+                builder.Property(m => m.Currency).HasMaxLength(3).IsRequired();
+           
 
             builder.Property(t => t.Type)
                 .HasConversion<string>();

@@ -10,7 +10,8 @@ namespace EdgeNetworkDomain.Entities
     public class Transaction : BaseEntity
     {
         public Guid WalletId { get; private set; }
-        public Money Amount { get; private set; }
+        public decimal Amount { get; private set; }
+        public string Currency { get; private set; }
         public TransactionType Type { get; private set; }
         public TransactionStatus Status { get; private set; } = TransactionStatus.Pending;
         public string Reference { get; private set; }
@@ -23,7 +24,8 @@ namespace EdgeNetworkDomain.Entities
             return new Transaction
             {
                 WalletId = walletId,
-                Amount = amount,
+                Amount = amount.Amount,
+                Currency= amount.Currency,
                 Type = type,
                 Reference = Guid.NewGuid().ToString("N").ToUpper(),
                 Description = description

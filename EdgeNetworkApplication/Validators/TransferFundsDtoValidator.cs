@@ -13,8 +13,8 @@ namespace EdgeNetworkApplication.Validators
             RuleFor(x => x.SenderWalletId)
                 .NotEmpty().WithMessage("Sender wallet ID is required.");
 
-            RuleFor(x => x.ReceiverWalletId)
-                .NotEmpty().WithMessage("Receiver wallet ID is required.");
+            RuleFor(x => x.ReceiverAccountNumber)
+                .NotEmpty().WithMessage("Receiver Account Number is required.");
 
             RuleFor(x => x.Amount)
                 .GreaterThan(0).WithMessage("Amount must be greater than zero.");
@@ -22,10 +22,6 @@ namespace EdgeNetworkApplication.Validators
             RuleFor(x => x.Currency)
                 .NotEmpty().WithMessage("Currency is required.")
                 .Length(3).WithMessage("Currency must be a 3-letter code e.g. NGN, USD.");
-
-            RuleFor(x => x)
-                .Must(x => x.SenderWalletId != x.ReceiverWalletId)
-                .WithMessage("Sender and receiver wallets cannot be the same.");
         }
     }
 }

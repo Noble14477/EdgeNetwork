@@ -74,6 +74,22 @@ namespace EdgeNetworkApi.Controllers
             return Ok(ApiResponse<object>.Success(new { token }, "Login successful."));
         }
 
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] string refreshToken)
+        {
+            var result = await _userService.RefreshTokenAsync(refreshToken);
+            if (!result.Succeeded)
+            {
+                return BadRequest(result);
+            }
+
+            var user = await _userManager.FindByIdAsync(result.Data.UserId.ToString());
+            result.Data.AccessToken = GenerateJwtToken(user);
+            result.Data.UserId = Guid.Empty;
+
+            return Ok(result);
+        }
+
         private string GenerateJwtToken(ApplicationUser user)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");

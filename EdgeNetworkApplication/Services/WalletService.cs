@@ -68,37 +68,46 @@ namespace EdgeNetworkApplication.Services
 
         public async Task TransferFundsAsync(TransferFundsDto dto, Guid requestingUserId)
         {
-            var senderWallet = await _walletRepository.GetByIdAsync(dto.SenderWalletId);   
-            if(senderWallet is null)
+            var sender = await _walletRepository.GetByIdAsync(dto.SenderWalletId);
+            if (sender is null)
                 throw new InvalidOperationException("Sender wallet not found");
 
-            if (senderWallet.UserId != requestingUserId)
+            if (sender.UserId != requestingUserId)
             {
                 throw new InvalidOperationException("You are not authorized to transfer from this wallet.");
             }
 
-            var receiverWallet = await _walletRepository.GetByIdAsync(dto.ReceiverWalletId);
-            if(receiverWallet is null)
-                throw new InvalidOperationException("Receiver wallet not found");
+            var receiver = await _walletRepository.GetByAccountNumberAsync(dto.ReceiverAccountNumber);
+            if(receiver is null)
+                throw new InvalidOperationException("Receiver's account number not found");
+
+            if (sender.AccountNumber.Value == dto.ReceiverAccountNumber)
+                throw new InvalidDataException("You cannot transfer to your own wallet");
 
             var amount = new Money(dto.Amount, dto.Currency);
 
-            senderWallet.Debit(amount);
-            receiverWallet.Credit(amount);
+            sender.Debit(amount);
+            receiver.Credit(amount);
 
-            var debitTransaction = Transaction.Create(senderWallet.Id, amount, TransactionType.Debit, $"Transfer to {receiverWallet.Id}");
-            var creditTransaction = Transaction.Create(receiverWallet.Id, amount, TransactionType.Credit, $"Transfer from {senderWallet.Id}");
+            var debitTransaction = Transaction.Create(sender.Id, amount, TransactionType.Debit, $"Transfer to {dto.ReceiverAccountNumber}");
+            var creditTransaction = Transaction.Create(receiver.Id, amount, TransactionType.Credit, $"Transfer from {sender.AccountNumber.Value}");
 
-            _walletRepository.Update(senderWallet);
-            _walletRepository.Update(receiverWallet);
+            debitTransaction.MarkCompleted();
+            creditTransaction.MarkCompleted();
+
+            await _transactionRepository.AddAsync(debitTransaction);
+            await _transactionRepository.AddAsync(creditTransaction);
+
+            _walletRepository.Update(sender);
+            _walletRepository.Update(receiver);
+
+
+       
+
+            
 
             try
             {
-                await _unitOfWork.SaveChangesAsync();
-                debitTransaction.MarkCompleted();
-                creditTransaction.MarkCompleted();
-                _transactionRepository.Update(debitTransaction);
-                _transactionRepository.Update(creditTransaction);
                 await _unitOfWork.SaveChangesAsync();
 
             }
@@ -138,8 +147,8 @@ namespace EdgeNetworkApplication.Services
             return transactions.Select(t => new TransactionDto
             {
                 Id = t.Id,
-                Amount = t.Amount.Amount,
-                Currency = t.Amount.Currency,
+                Amount = t.Amount,
+                Currency = t.Currency,
                 Type = t.Type.ToString(),
                 Status = t.Status.ToString(),
                 Reference = t.Reference,

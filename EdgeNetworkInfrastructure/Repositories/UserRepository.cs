@@ -17,5 +17,16 @@ namespace EdgeNetworkInfrastructure.Repositories
             return await _context.Users
                 .FirstOrDefaultAsync(u => u.Email.Value == email, ct);
         }
+        public async Task AddRefreshTokenAsync(RefreshToken token, CancellationToken ct = default)
+        {
+            await _context.RefreshTokens.AddAsync(token, ct);
+        }
+
+        public async Task<RefreshToken?> GetRefreshTokenAsync(string token, CancellationToken ct = default)
+        {
+            return await _context.RefreshTokens
+                .Include(r => r.User)
+                .FirstOrDefaultAsync(r => r.Token == token, ct);
+        }
     }
 }

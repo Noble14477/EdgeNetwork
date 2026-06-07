@@ -14,6 +14,7 @@ namespace EdgeNetworkDomain.Entities
         public PhoneNumber PhoneNumber { get; private set; }
         public UserStatus Status { get; private set; } = UserStatus.Active;
         public ICollection<Wallet> Wallets { get; private set; } = new List<Wallet>();
+        public ICollection<RefreshToken> RefreshTokens { get; private set; } = [];
 
         private AppUser() { } 
 

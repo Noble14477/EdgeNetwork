@@ -3,6 +3,7 @@ using System;
 using EdgeNetworkInfrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EdgeNetworkInfrastructure.Migrations
 {
     [DbContext(typeof(AppDBContext))]
-    partial class AppDBContextModelSnapshot : ModelSnapshot
+    [Migration("20260607173938_FixColumnTypes")]
+    partial class FixColumnTypes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -43,58 +46,14 @@ namespace EdgeNetworkInfrastructure.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("EdgeNetworkDomain.Entities.RefreshToken", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsRevoked")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("RevokedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("RefreshTokens");
-                });
-
             modelBuilder.Entity("EdgeNetworkDomain.Entities.Transaction", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("numeric(18,2)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
@@ -421,23 +380,38 @@ namespace EdgeNetworkInfrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("EdgeNetworkDomain.Entities.RefreshToken", b =>
-                {
-                    b.HasOne("EdgeNetworkDomain.Entities.AppUser", "User")
-                        .WithMany("RefreshTokens")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("EdgeNetworkDomain.Entities.Transaction", b =>
                 {
                     b.HasOne("EdgeNetworkDomain.Entities.Wallet", null)
                         .WithMany("Transactions")
                         .HasForeignKey("WalletId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsOne("EdgeNetworkDomain.ValueObjects.Money", "Amount", b1 =>
+                        {
+                            b1.Property<Guid>("TransactionId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<decimal>("Amount")
+                                .HasColumnType("numeric(18,2)")
+                                .HasColumnName("Amount");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("character varying(3)")
+                                .HasColumnName("Currency");
+
+                            b1.HasKey("TransactionId");
+
+                            b1.ToTable("Transactions");
+
+                            b1.WithOwner()
+                                .HasForeignKey("TransactionId");
+                        });
+
+                    b.Navigation("Amount")
                         .IsRequired();
                 });
 
@@ -448,25 +422,6 @@ namespace EdgeNetworkInfrastructure.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.OwnsOne("EdgeNetworkDomain.ValueObjects.AccountNumber", "AccountNumber", b1 =>
-                        {
-                            b1.Property<Guid>("WalletId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<string>("Value")
-                                .IsRequired()
-                                .HasMaxLength(20)
-                                .HasColumnType("character varying(20)")
-                                .HasColumnName("AccountNumber");
-
-                            b1.HasKey("WalletId");
-
-                            b1.ToTable("Wallets");
-
-                            b1.WithOwner()
-                                .HasForeignKey("WalletId");
-                        });
 
                     b.OwnsOne("EdgeNetworkDomain.ValueObjects.Money", "Balance", b1 =>
                         {
@@ -482,6 +437,25 @@ namespace EdgeNetworkInfrastructure.Migrations
                                 .HasMaxLength(3)
                                 .HasColumnType("character varying(3)")
                                 .HasColumnName("Currency");
+
+                            b1.HasKey("WalletId");
+
+                            b1.ToTable("Wallets");
+
+                            b1.WithOwner()
+                                .HasForeignKey("WalletId");
+                        });
+
+                    b.OwnsOne("EdgeNetworkDomain.ValueObjects.AccountNumber", "AccountNumber", b1 =>
+                        {
+                            b1.Property<Guid>("WalletId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("Value")
+                                .IsRequired()
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)")
+                                .HasColumnName("AccountNumber");
 
                             b1.HasKey("WalletId");
 
@@ -551,8 +525,6 @@ namespace EdgeNetworkInfrastructure.Migrations
 
             modelBuilder.Entity("EdgeNetworkDomain.Entities.AppUser", b =>
                 {
-                    b.Navigation("RefreshTokens");
-
                     b.Navigation("Wallets");
                 });
 
