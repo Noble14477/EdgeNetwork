@@ -123,7 +123,7 @@ builder.Services.AddRateLimiter(options =>
         factory: _ => new FixedWindowRateLimiterOptions
         {
             Window = TimeSpan.FromMinutes(1),
-            PermitLimit = 5,
+            PermitLimit = 2,
             QueueLimit = 0
         }));
 
