@@ -1,10 +1,15 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using EdgeNetworkApplication.Common;
 using EdgeNetworkApplication.Dtos;
 using EdgeNetworkApplication.Interface;
+using EdgeNetworkDomain.Entities;
+using EdgeNetworkDomain.Interface;
+using EdgeNetworkInfrastructure;
 using EdgeNetworkInfrastructure.Identity;
+using EdgeNetworkInfrastructure.Repositories;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -21,15 +26,24 @@ namespace EdgeNetworkApi.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
         private readonly IValidator<RegisterUserDto> _registerValidator;
+        private readonly IUserRepository _userRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public AuthController(IUserService userService, UserManager<ApplicationUser> userManager, IConfiguration configuration, IValidator<RegisterUserDto> registerValidator)
-        {
-            _userService = userService;
-            _userManager = userManager;
-            _configuration = configuration;
-            _registerValidator = registerValidator;
+        public AuthController(
+            IUserService userService,
+            UserManager<ApplicationUser> userManager,
+            IConfiguration configuration,
+            IValidator<RegisterUserDto> registerValidator,
+            IUserRepository userRepository,
+            IUnitOfWork unitOfWork)
+                {
+                    _userService = userService;
+                    _userManager = userManager;
+                    _configuration = configuration;
+                    _registerValidator = registerValidator;
+                    _userRepository = userRepository;
+                    _unitOfWork = unitOfWork;
         }
-
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterUserDto dto)
         {
@@ -63,15 +77,30 @@ namespace EdgeNetworkApi.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginUserDto dto)
         {
-            var IdentityUser = await _userManager.FindByEmailAsync(dto.Email);
-            if(IdentityUser is null)
+            var identityUser = await _userManager.FindByEmailAsync(dto.Email);
+            if(identityUser is null)
                 return Unauthorized("Invalid Credentials");
 
-            var passwordValid = await _userManager.CheckPasswordAsync(IdentityUser, dto.Password);
+            var passwordValid = await _userManager.CheckPasswordAsync(identityUser, dto.Password);
             if(!passwordValid) return Unauthorized("Invalid credentials");
 
-            var token = GenerateJwtToken(IdentityUser);
-            return Ok(ApiResponse<object>.Success(new { token }, "Login successful."));
+            var accessToken = GenerateJwtToken(identityUser);
+
+            var refreshToken = new RefreshToken
+            {
+                Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+                ExpiresAt = DateTime.UtcNow.AddDays(7),
+                UserId = identityUser.Id
+            };
+
+            await _userRepository.AddRefreshTokenAsync(refreshToken);
+            await _unitOfWork.SaveChangesAsync();
+
+            return Ok(ApiResponse<object>.Success(new
+            {
+                accessToken,
+                refreshToken = refreshToken.Token
+            }, "Login successful."));
         }
 
         [HttpPost("refresh-token")]
