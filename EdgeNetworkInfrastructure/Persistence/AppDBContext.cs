@@ -20,6 +20,7 @@ namespace EdgeNetworkInfrastructure.Data
         public DbSet<Wallet> Wallets { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<BillPayment> BillPayments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

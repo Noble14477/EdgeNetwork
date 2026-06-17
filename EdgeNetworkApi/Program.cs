@@ -45,9 +45,11 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IWalletRepository, WalletRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IBillsRepository, BillsRepository>();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IWalletService, WalletService>();
+builder.Services.AddScoped<IBillsServices, BillsServices>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserDtoValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserDtoValidator>();
@@ -126,6 +128,19 @@ builder.Services.AddRateLimiter(options =>
             PermitLimit = 5,
             QueueLimit = 0
         }));
+
+    options.AddPolicy("bills", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.Request.Headers["X-Forward_For"].FirstOrDefault()
+                ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    Window = TimeSpan.FromMinutes(1),
+                    PermitLimit = 10,
+                    QueueLimit = 0
+                }
+
+    ));
 
     options.OnRejected = async (context, ct) =>
     {
