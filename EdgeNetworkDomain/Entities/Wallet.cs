@@ -15,7 +15,7 @@ namespace EdgeNetworkDomain.Entities
         public WalletStatus Status { get; private set; } = WalletStatus.Active;
         public ICollection<Transaction> Transactions { get; private set; } = new List<Transaction>();
 
-        private Wallet() { } // For EF Core
+        private Wallet() { } 
 
         public static Wallet Create(Guid userId, string currency)
         {

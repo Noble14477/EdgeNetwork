@@ -19,7 +19,7 @@ namespace EdgeNetworkDomain.Entities
 
         private Transaction() { }
 
-        public static Transaction Create(Guid walletId, Money amount, TransactionType type, string? description = null)
+        public static Transaction Create(Guid walletId, Money amount, TransactionType type, string? description = null, string? reference = null)
         {
             return new Transaction
             {

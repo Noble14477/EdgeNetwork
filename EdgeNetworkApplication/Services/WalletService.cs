@@ -35,89 +35,101 @@ namespace EdgeNetworkApplication.Services
 
         public async Task FundWalletAsync(FundWalletDto dto, Guid requestingUserId)
         {
-            var wallet = await _walletRepository.GetByIdAsync(dto.WalletId);
-            if (wallet is null)
-                throw new InvalidOperationException("Wallet not found.");
-
-            if (wallet.UserId != requestingUserId)
-            {
-                throw new InvalidOperationException("You are not authorized to fund this wallet.");
-            }
-
-            var amount = new Money(dto.Amount, dto.Currency);
-            wallet.Credit(amount);
-
-            // record the transaction
-            var transaction = Transaction.Create(wallet.Id, amount, TransactionType.Credit, "Wallet funding");
-            await _transactionRepository.AddAsync(transaction);
-
-            _walletRepository.Update(wallet);
+            const int maxRetries = 3;
+            var attempt = 0;
 
             try
             {
-                await _unitOfWork.SaveChangesAsync();
+                var wallet = await _walletRepository.GetByIdAsync(dto.WalletId);
+                if (wallet is null)
+                    throw new InvalidOperationException("Wallet not found.");
+                await Task.Delay(3000);
+                if (wallet.UserId != requestingUserId)
+                    throw new InvalidOperationException("You are not authorized to fund this wallet.");
+
+
+                var amount = new Money(dto.Amount, dto.Currency);
+                wallet.Credit(amount);
+
+                // record the transaction
+                var transaction = Transaction.Create(wallet.Id, amount, TransactionType.Credit, "Wallet funding");
                 transaction.MarkCompleted();
-                _transactionRepository.Update(transaction);
+                await _transactionRepository.AddAsync(transaction);
+
+                _walletRepository.Update(wallet);
+
                 await _unitOfWork.SaveChangesAsync();
+                return;
+            }
+            catch (ConcurrencyConflictException)
+            {
+                if (attempt > maxRetries)
+                    throw new InvalidOperationException("this transfer could not be completed due to high activity. Please try again.");
+
+                await Task.Delay(100 * attempt);
 
             }
-            catch
-            {
-                transaction.MarkFailed();
-                throw;
-            }
+
+            
         }
 
         public async Task TransferFundsAsync(TransferFundsDto dto, Guid requestingUserId)
         {
-            var sender = await _walletRepository.GetByIdAsync(dto.SenderWalletId);
-            if (sender is null)
-                throw new InvalidOperationException("Sender wallet not found");
 
-            if (sender.UserId != requestingUserId)
+            const int maxRetries = 3;
+            var attempt = 0;
+
+            while (true)
             {
-                throw new InvalidOperationException("You are not authorized to transfer from this wallet.");
+                try
+                {
+                    var sender = await _walletRepository.GetByIdAsync(dto.SenderWalletId);
+                    if (sender is null)
+                        throw new InvalidOperationException("Sender wallet not found");
+
+                    if (sender.UserId != requestingUserId)
+                        throw new InvalidOperationException("You are not authorized to transfer from this wallet.");
+
+
+                    var receiver = await _walletRepository.GetByAccountNumberAsync(dto.ReceiverAccountNumber);
+                    if (receiver is null)
+                        throw new InvalidOperationException("Receiver's account number not found");
+
+                    if (sender.AccountNumber.Value == dto.ReceiverAccountNumber)
+                        throw new InvalidDataException("You cannot transfer to your own wallet");
+
+                    var amount = new Money(dto.Amount, dto.Currency);
+
+                    sender.Debit(amount);
+                    receiver.Credit(amount);
+
+                    var transferReference = Guid.NewGuid().ToString();
+
+                    var debitTransaction = Transaction.Create(sender.Id, amount, TransactionType.Debit, $"Transfer to {dto.ReceiverAccountNumber}", transferReference);
+                    debitTransaction.MarkCompleted();
+
+                    var creditTransaction = Transaction.Create(receiver.Id, amount, TransactionType.Credit, $"Transfer from {sender.AccountNumber.Value}", transferReference);
+                    creditTransaction.MarkCompleted();
+
+                    await _transactionRepository.AddAsync(debitTransaction);
+                    await _transactionRepository.AddAsync(creditTransaction);
+
+                    _walletRepository.Update(sender);
+                    _walletRepository.Update(receiver);
+
+                    await _unitOfWork.SaveChangesAsync();
+                    return;
+                }
+                catch (ConcurrencyConflictException)
+                {
+                    if (attempt > maxRetries)
+                        throw new InvalidOperationException("this transfer could not be completed due to high activity. Please try again.");
+
+                    await Task.Delay(100 * attempt);
+                }
             }
-
-            var receiver = await _walletRepository.GetByAccountNumberAsync(dto.ReceiverAccountNumber);
-            if(receiver is null)
-                throw new InvalidOperationException("Receiver's account number not found");
-
-            if (sender.AccountNumber.Value == dto.ReceiverAccountNumber)
-                throw new InvalidDataException("You cannot transfer to your own wallet");
-
-            var amount = new Money(dto.Amount, dto.Currency);
-
-            sender.Debit(amount);
-            receiver.Credit(amount);
-
-            var debitTransaction = Transaction.Create(sender.Id, amount, TransactionType.Debit, $"Transfer to {dto.ReceiverAccountNumber}");
-            var creditTransaction = Transaction.Create(receiver.Id, amount, TransactionType.Credit, $"Transfer from {sender.AccountNumber.Value}");
-
-            debitTransaction.MarkCompleted();
-            creditTransaction.MarkCompleted();
-
-            await _transactionRepository.AddAsync(debitTransaction);
-            await _transactionRepository.AddAsync(creditTransaction);
-
-            _walletRepository.Update(sender);
-            _walletRepository.Update(receiver);
-
-
-       
 
             
-
-            try
-            {
-                await _unitOfWork.SaveChangesAsync();
-
-            }
-            catch {                 
-                debitTransaction.MarkFailed();
-                creditTransaction.MarkFailed();
-                throw;
-            }
 
         }
 

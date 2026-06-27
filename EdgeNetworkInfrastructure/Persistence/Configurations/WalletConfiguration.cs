@@ -30,6 +30,8 @@ namespace EdgeNetworkInfrastructure.Persistence.Configurations
             builder.HasMany(w => w.Transactions)
                 .WithOne()
                 .HasForeignKey(t => t.WalletId);
+
+            builder.Property<uint>("xmin").HasColumnName("xmin").IsRowVersion();
         }
     }
 }
