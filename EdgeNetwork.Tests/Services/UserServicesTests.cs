@@ -47,5 +47,49 @@ namespace EdgeNetwork.Tests.Services
 
         }
 
+
+        [Fact]
+        public async Task RegisterUser_ShouldThrow_WhenUserAlreadyExists()
+        {
+            //Arrange
+            var userRepository = new Mock<IUserRepository>();
+            var unitOfWork = new Mock<IUnitOfWork>();
+
+            var dto = new RegisterUserDto
+            {
+                FirstName = "Noble",
+                LastName = "Chinonso",
+                Email = "noble@test.com",
+                PhoneNumber = "08012345678"
+            };
+
+            var existingUser = AppUser.Create(
+                Guid.NewGuid(),
+                dto.FirstName,
+                dto.LastName,
+                dto.Email,
+                dto.PhoneNumber
+             );
+
+            userRepository
+                .Setup(x => x.GetByEmailAsync(dto.Email))
+                .ReturnsAsync(existingUser);
+
+            var userService = new UserService(
+                userRepository.Object,
+                unitOfWork.Object);
+
+            // Act
+            var act = async () => await userService.RegisterAsync(dto, Guid.NewGuid());
+
+            // Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(act);
+
+            Assert.Equal(
+                "A user with this email already exists",
+                exception.Message);
+
+        }
+
     }
 }
