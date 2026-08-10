@@ -3,6 +3,7 @@
     <File Path=".gitignore" />
     <File Path="DockerFile" />
   </Folder>
+  <Project Path="EdgeNetwork.Tests/EdgeNetwork.Tests.csproj" Id="e16930d7-e925-46d3-bac0-e6b54922f90b" />
   <Project Path="EdgeNetworkApi/EdgeNetworkApi.csproj" />
   <Project Path="EdgeNetworkApplication/EdgeNetworkApplication.csproj" />
   <Project Path="EdgeNetworkDomain/EdgeNetworkDomain.csproj" />
